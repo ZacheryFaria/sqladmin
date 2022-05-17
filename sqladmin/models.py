@@ -542,7 +542,6 @@ class ModelAdmin(BaseModelAdmin, metaclass=ModelAdminMeta):
 
             if hasattr(attr, '_action'):
                 name, text, desc = attr._action
-                print(name, text, desc)
 
                 self._actions.append((name, text))
                 self._actions_data[name] = (attr, text, desc)
