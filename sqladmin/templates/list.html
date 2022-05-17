@@ -1,10 +1,37 @@
 {% extends "layout.html" %}
 {% block content %}
 <div class="col-12">
+  <script>
+    function executeAction(action) {
+      var form = $('#action_form');
+
+      $("input.action-checkbox:checked").each(function() {
+        form.append($(this).clone());
+      })
+
+      $('#action', form).val(action);
+      form.submit();
+    }
+  </script>
   <div class="card">
     <div class="card-header">
       <h3 class="card-title">{{ model_admin.name_plural }}</h3>
       <div class="ms-auto">
+        {% if model_admin._actions | length > 0 %}
+          <div class="ms-3 d-inline-block dropdown">
+            <form id="action_form" action="{{ url_for('admin:action', identity=model_admin.identity) }}" method="GET" style="display: none">
+              <input id="action" type="hidden" name="name" value=""/>
+            </form>
+            <a href="#" class="btn btn-secondary dropdown-toggle" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+             Actions
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+              {% for action in model_admin._actions %}
+                <li><a href="javascript:void(0)" onclick="executeAction('{{ action[0] }}')" class="dropdown-item">{{ action[1] }}</a></li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
         {% if model_admin.can_export %}
         {% if model_admin.export_types | length > 1 %}
         <div class="ms-3 d-inline-block dropdown">
@@ -37,7 +64,7 @@
     <div class="card-body border-bottom py-3">
       <div class="d-flex">
         <div class="dropdown text-muted">
-          Show 
+          Show
           <a href="#" class="btn btn-light dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
             {{ request.query_params.get("pageSize") or model_admin.page_size }}
           </a>
@@ -87,7 +114,7 @@
         <tbody>
           {% for row in pagination.rows %}
           <tr>
-            <td><input class="form-check-input m-0 align-middle" type="checkbox" aria-label="Select item"></td>
+            <td><input class="action-checkbox form-check-input m-0 align-middle" value="{{ row.id }}" name="ids" type="checkbox" aria-label="Select item"></td>
             <td class="text-end">
               {% if model_admin.can_view_details %}
               <a href="{{ url_for('admin:details', identity=model_admin.identity, pk=model_admin.get_attr_value(row, model_admin.pk_column)) }}" data-bs-toggle="tooltip" data-bs-placement="top" title="View">

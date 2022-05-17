@@ -106,6 +106,11 @@ class BaseAdminView(BaseAdmin):
         if not model_admin.is_accessible(request):
             raise HTTPException(status_code=403)
 
+    async def _action(self, request: Request) -> None:
+        model_admin = self._find_model_admin(request.path_params["identity"])
+        if not model_admin.is_accessible(request):
+            raise HTTPException(status_code=403)
+
     async def _create(self, request: Request) -> None:
         model_admin = self._find_model_admin(request.path_params["identity"])
         if not model_admin.can_create or not model_admin.is_accessible(request):
@@ -199,6 +204,7 @@ class Admin(BaseAdminView):
                 Mount("/statics", app=statics, name="statics"),
                 Route("/", endpoint=self.index, name="index"),
                 Route("/{identity}/list", endpoint=self.list, name="list"),
+                Route("/{identity}/action", endpoint=self.action, name="action"),
                 Route(
                     "/{identity}/details/{pk}", endpoint=self.details, name="details"
                 ),
@@ -261,6 +267,28 @@ class Admin(BaseAdminView):
         }
 
         return self.templates.TemplateResponse(model_admin.list_template, context)
+
+    async def action(self, request: Request) -> Response:
+        await self._action(request)
+
+        model_admin = self._find_model_admin(request.path_params["identity"])
+
+        action_name = request.query_params.get("name")
+        action_ids = request.query_params.getlist("ids")
+
+        action = model_admin._actions_data.get(action_name)
+
+        if action is None:
+            raise HTTPException(status_code=404)
+
+        fn, name, desc = action
+
+        await fn(action_ids)
+
+        return RedirectResponse(
+            request.url_for("admin:list", identity=model_admin.identity),
+            status_code=302,
+        )
 
     async def details(self, request: Request) -> Response:
         """Details route."""

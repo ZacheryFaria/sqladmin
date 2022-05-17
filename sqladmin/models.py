@@ -49,6 +49,14 @@ __all__ = [
 ]
 
 
+def action(name, text, confirmation=None):
+    def wrap(f):
+        f._action = (name, text, confirmation)
+        return f
+
+    return wrap
+
+
 class ModelAdminMeta(type):
     """Metaclass used to specify class variables in ModelAdmin.
 
@@ -520,6 +528,24 @@ class ModelAdmin(BaseModelAdmin, metaclass=ModelAdminMeta):
             getattr(self.model, self.get_model_attr(attr).key)
             for attr in self.column_sortable_list or []
         ]
+        self._init_actions()
+
+    def _init_actions(self):
+        """
+            Initialize list of actions for the current administrative view.
+        """
+        self._actions = []
+        self._actions_data = {}
+
+        for p in dir(self):
+            attr = getattr(self, p)
+
+            if hasattr(attr, '_action'):
+                name, text, desc = attr._action
+                print(name, text, desc)
+
+                self._actions.append((name, text))
+                self._actions_data[name] = (attr, text, desc)
 
     def _run_query_sync(self, stmt: ClauseElement) -> Any:
         with self.sessionmaker(expire_on_commit=False) as session:
